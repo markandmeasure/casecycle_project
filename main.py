@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Response
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -34,6 +34,7 @@ if os.getenv("ENVIRONMENT") == "development":
     @app.on_event("startup")
     def _load_sample_data() -> None:
         populate()
+
 
 @app.get("/")
 def root() -> dict:
@@ -81,6 +82,16 @@ class OpportunitySchema(OpportunityCreate):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class OpportunityUpdate(BaseModel):
+    title: Optional[str] = None
+    market_description: Optional[str] = None
+    tam_estimate: Optional[float] = Field(default=None, gt=0)
+    growth_rate: Optional[float] = Field(default=None, ge=0)
+    consumer_insight: Optional[str] = None
+    hypothesis: Optional[str] = None
+
+
 @app.post("/users/", response_model=UserSchema)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = models.User(name=user.name)
@@ -105,15 +116,57 @@ def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get
 
 
 @app.get("/opportunities/", response_model=List[OpportunitySchema])
-def read_opportunities(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
-    return (
+def read_opportunities(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return db.query(models.Opportunity).offset(skip).limit(limit).all()
+
+
+@app.get("/opportunities/{opportunity_id}", response_model=OpportunitySchema)
+def read_opportunity(opportunity_id: int, db: Session = Depends(get_db)):
+    opportunity = (
         db.query(models.Opportunity)
-        .offset(skip)
-        .limit(limit)
-        .all()
+        .filter(models.Opportunity.id == opportunity_id)
+        .first()
     )
+    if opportunity is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    return opportunity
+
+
+@app.put("/opportunities/{opportunity_id}", response_model=OpportunitySchema)
+@app.patch("/opportunities/{opportunity_id}", response_model=OpportunitySchema)
+def update_opportunity(
+    opportunity_id: int,
+    opportunity: OpportunityUpdate,
+    db: Session = Depends(get_db),
+):
+    db_opportunity = (
+        db.query(models.Opportunity)
+        .filter(models.Opportunity.id == opportunity_id)
+        .first()
+    )
+    if db_opportunity is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+
+    update_data = opportunity.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_opportunity, key, value)
+    db.commit()
+    db.refresh(db_opportunity)
+    return db_opportunity
+
+
+@app.delete("/opportunities/{opportunity_id}", status_code=204)
+def delete_opportunity(opportunity_id: int, db: Session = Depends(get_db)):
+    db_opportunity = (
+        db.query(models.Opportunity)
+        .filter(models.Opportunity.id == opportunity_id)
+        .first()
+    )
+    if db_opportunity is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    db.delete(db_opportunity)
+    db.commit()
+    return Response(status_code=204)
 
 
 @app.get("/prompt/{opportunity_id}")

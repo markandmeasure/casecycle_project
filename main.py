@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import json
+from pathlib import Path
+from jinja2 import Template
 
 import models
 from database import SessionLocal, engine
@@ -14,6 +17,8 @@ from settings import ALLOWED_ORIGINS
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+TEMPLATE_PATH = Path(__file__).with_name("prompt_templates.json")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +42,13 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def load_templates() -> dict:
+    if not TEMPLATE_PATH.exists():
+        raise HTTPException(status_code=500, detail="Template file not found")
+    with TEMPLATE_PATH.open() as f:
+        return json.load(f)
 
 
 class UserCreate(BaseModel):
@@ -99,6 +111,35 @@ def read_opportunities(
         .limit(limit)
         .all()
     )
+
+
+@app.get("/prompt/{opportunity_id}")
+def generate_prompt(
+    opportunity_id: int, template_name: str = "default", db: Session = Depends(get_db)
+):
+    templates = load_templates()
+    template_str = templates.get(template_name)
+    if template_str is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    opportunity = (
+        db.query(models.Opportunity)
+        .filter(models.Opportunity.id == opportunity_id)
+        .first()
+    )
+    if opportunity is None:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+
+    data = {
+        "title": opportunity.title or "",
+        "market_description": opportunity.market_description or "",
+        "tam_estimate": opportunity.tam_estimate or "",
+        "growth_rate": opportunity.growth_rate or "",
+        "consumer_insight": opportunity.consumer_insight or "",
+        "hypothesis": opportunity.hypothesis or "",
+    }
+    prompt = Template(template_str).render(**data)
+    return {"prompt": prompt}
 
 
 @app.get("/healthcheck")

@@ -1,0 +1,70 @@
+import { useState } from 'react';
+
+function OpportunityInput() {
+  const [jsonValue, setJsonValue] = useState('');
+  const [feedback, setFeedback] = useState(null);
+
+  // Use the sanitized base URL (from `App`)
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+  const handleSave = async () => {
+    setFeedback(null);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonValue);
+    } catch {
+      setFeedback('Invalid JSON format');
+      return;
+    }
+
+    const requiredFields = [
+      'title',
+      'market_description',
+      'tam_estimate',
+      'growth_rate',
+      'consumer_insight',
+      'hypothesis',
+    ];
+    const missing = requiredFields.filter((field) => !(field in parsed));
+    if (missing.length > 0) {
+      setFeedback(`Missing fields: ${missing.join(', ')}`);
+      return;
+    }
+
+    try {
+      const response = await fetch(new URL('/opportunities/', API_BASE_URL), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(parsed),
+      });
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      setFeedback('Opportunity saved');
+    } catch (error) {
+      console.error('Error saving opportunity:', error);
+      setFeedback('Failed to save opportunity');
+    }
+  };
+
+  return (
+    <div>
+      <textarea
+        value={jsonValue}
+        onChange={(e) => setJsonValue(e.target.value)}
+        placeholder='{"title":"","market_description":"","tam_estimate":"","growth_rate":"","consumer_insight":"","hypothesis":""}'
+        rows={12}
+        cols={80}
+      />
+      <div>
+        <button onClick={handleSave}>Save</button>
+      </div>
+      {feedback && <div role="alert">{feedback}</div>}
+    </div>
+  );
+}
+
+export default OpportunityInput;

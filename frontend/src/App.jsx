@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './App.css';
+import OpportunityInput from './OpportunityInput';
 
 function App() {
   const [opportunities, setOpportunities] = useState(null);
@@ -28,6 +29,7 @@ function App() {
 
   return (
     <div className="App">
+      <OpportunityInput />
       <button onClick={fetchOpportunities}>Fetch Opportunities</button>
       {errorMessage && <div role="alert">{errorMessage}</div>}
       {opportunities && <pre>{JSON.stringify(opportunities, null, 2)}</pre>}

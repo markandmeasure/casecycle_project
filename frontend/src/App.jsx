@@ -6,7 +6,7 @@ function App() {
 
   const fetchOpportunities = async () => {
     try {
-      const response = await fetch('/opportunities')
+      const response = await fetch('/opportunities/')
       const data = await response.json()
       setOpportunities(data)
     } catch (error) {

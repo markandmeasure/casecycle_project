@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 import models
 from database import SessionLocal, engine
@@ -9,6 +10,14 @@ from database import SessionLocal, engine
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_db():

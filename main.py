@@ -1,4 +1,6 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -86,4 +88,11 @@ def read_opportunities(db: Session = Depends(get_db)):
 
 @app.get("/healthcheck")
 def healthcheck():
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    finally:
+        db.close()
     return {"status": "ok"}

@@ -40,3 +40,32 @@ def test_create_opportunity():
     opportunities = list_response.json()
     assert len(opportunities) == 1
     assert opportunities[0]["title"] == payload["title"]
+
+
+@pytest.mark.parametrize("tam_estimate", [-1000.0, 0.0])
+def test_create_opportunity_invalid_tam_estimate(tam_estimate):
+    client = TestClient(app)
+    payload = {
+        "title": "Invalid TAM",
+        "market_description": "Description",
+        "tam_estimate": tam_estimate,
+        "growth_rate": 5.0,
+        "consumer_insight": "Insight",
+        "hypothesis": "Hypothesis",
+    }
+    response = client.post("/opportunities/", json=payload)
+    assert response.status_code == 422
+
+
+def test_create_opportunity_invalid_growth_rate():
+    client = TestClient(app)
+    payload = {
+        "title": "Invalid Growth",
+        "market_description": "Description",
+        "tam_estimate": 1000.0,
+        "growth_rate": -1.0,
+        "consumer_insight": "Insight",
+        "hypothesis": "Hypothesis",
+    }
+    response = client.post("/opportunities/", json=payload)
+    assert response.status_code == 422

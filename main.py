@@ -1,6 +1,6 @@
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -44,8 +44,8 @@ class UserSchema(BaseModel):
 class OpportunityCreate(BaseModel):
     title: str
     market_description: Optional[str] = None
-    tam_estimate: Optional[float] = None
-    growth_rate: Optional[float] = None
+    tam_estimate: Optional[float] = Field(default=None, gt=0)
+    growth_rate: Optional[float] = Field(default=None, ge=0)
     consumer_insight: Optional[str] = None
     hypothesis: Optional[str] = None
 

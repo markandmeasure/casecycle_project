@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 
 import models
@@ -41,9 +41,17 @@ class UserSchema(BaseModel):
         orm_mode = True
 
 
-class OpportunitySchema(BaseModel):
+class OpportunityCreate(BaseModel):
+    title: str
+    market_description: Optional[str] = None
+    tam_estimate: Optional[float] = None
+    growth_rate: Optional[float] = None
+    consumer_insight: Optional[str] = None
+    hypothesis: Optional[str] = None
+
+
+class OpportunitySchema(OpportunityCreate):
     id: int
-    name: str
 
     class Config:
         orm_mode = True
@@ -61,6 +69,15 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.get("/users/", response_model=List[UserSchema])
 def read_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
+
+
+@app.post("/opportunities/", response_model=OpportunitySchema)
+def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get_db)):
+    db_opportunity = models.Opportunity(**opportunity.dict())
+    db.add(db_opportunity)
+    db.commit()
+    db.refresh(db_opportunity)
+    return db_opportunity
 
 
 @app.get("/opportunities/", response_model=List[OpportunitySchema])

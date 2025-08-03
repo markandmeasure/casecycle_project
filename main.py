@@ -56,7 +56,6 @@ class OpportunitySchema(OpportunityCreate):
     class Config:
         orm_mode = True
 
-
 @app.post("/users/", response_model=UserSchema)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = models.User(name=user.name)

@@ -13,5 +13,5 @@ This React application provides a simple interface to the CaseCycle FastAPI back
    npm run dev
    ```
 
-On load, the single page requests `/opportunities/` from the backend and displays the JSON response.
+The page shows a **Fetch Opportunities** button. Clicking it requests `/opportunities/` from the backend and displays the JSON response.
 

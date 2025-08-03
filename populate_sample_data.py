@@ -38,6 +38,14 @@ def populate() -> None:
     """
     session: Session = SessionLocal()
     try:
+        # Ensure a default user exists
+        user = session.query(models.User).filter_by(name="Sample User").one_or_none()
+        if not user:
+            user = models.User(name="Sample User")
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+
         sample_opportunities: List[Dict] = [
             {
                 "title": "Eco-Friendly Water Bottle",
@@ -46,6 +54,7 @@ def populate() -> None:
                 "growth_rate": 7.5,
                 "consumer_insight": "Consumers seek sustainable alternatives",
                 "hypothesis": "A durable bottle with filter will attract buyers",
+                "user_id": user.id,
             },
             {
                 "title": "Smart Home Energy Monitor",
@@ -54,6 +63,7 @@ def populate() -> None:
                 "growth_rate": 10.0,
                 "consumer_insight": "People want to reduce energy bills",
                 "hypothesis": "Real-time usage alerts can save cost",
+                "user_id": user.id,
             },
         ]
 

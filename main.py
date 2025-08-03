@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import models
 from database import SessionLocal, engine
+from settings import ALLOWED_ORIGINS
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -13,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

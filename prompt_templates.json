@@ -1,0 +1,3 @@
+{
+  "default": "Opportunity Title: {{title}}\nMarket Description: {{market_description}}\nTAM Estimate: {{tam_estimate}}\nGrowth Rate: {{growth_rate}}\nConsumer Insight: {{consumer_insight}}\nHypothesis: {{hypothesis}}"
+}

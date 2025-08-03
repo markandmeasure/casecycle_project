@@ -1,12 +1,29 @@
 # CaseCycle Project
 
-This repository contains a FastAPI backend and a React frontend.
+CaseCycle combines a FastAPI backend with a React frontend for collecting and
+reviewing market opportunities.
 
-## Frontend
+## Quick Start
 
-The React app resides in the `frontend` directory. It includes a single page with a **Fetch Opportunities** button that requests `/opportunities` from the backend.
+### Backend
 
-### Development
+Start the API server:
+
+```bash
+uvicorn main:app --reload
+```
+
+The service listens on `http://127.0.0.1:8000`. Setting
+`ENVIRONMENT=development` loads sample opportunities on startup, or run the
+population script manually:
+
+```bash
+python populate_sample_data.py
+```
+
+### Frontend
+
+In a separate terminal, launch the React app:
 
 ```bash
 cd frontend
@@ -14,41 +31,35 @@ npm install
 npm run dev
 ```
 
-## Backend
+The Vite dev server runs at `http://localhost:5173` and proxies API requests to
+the backend.
 
-Start the FastAPI server:
+## Expected Workflow
 
-```bash
-uvicorn main:app --reload
-```
+1. Start the backend and ensure the database contains sample data.
+2. Run the frontend and open `http://localhost:5173` in a browser.
+3. Browse existing opportunities, add new ones via the JSON form, and paginate
+   through the list.
+4. Use the `/prompt/{id}` endpoint to generate a text prompt for a specific
+   opportunity.
 
-Once the server reports `Uvicorn running on http://127.0.0.1:8000`, check that
-it is serving the health endpoint in another terminal:
+## API Endpoints
 
-```bash
-curl http://127.0.0.1:8000/healthcheck
-```
+- `GET /` – basic root endpoint returning `{"status": "ok"}`.
+- `GET /healthcheck` – database connectivity check.
+- `POST /users/` – create a user.
+- `GET /users/` – list users.
+- `POST /opportunities/` – create an opportunity.
+- `GET /opportunities/` – list opportunities using `skip` and `limit`
+  parameters for pagination.
+- `GET /prompt/{opportunity_id}` – render a template-based prompt for the
+  specified opportunity.
 
-If this returns `{"status": "ok"}`, the backend is running correctly. A 404
-usually means another process is still bound to port 8000 or the server was
-started from a different directory. You can look for lingering processes with
-`lsof -i:8000` and stop them before restarting `uvicorn`.
+## Sample Data
 
-### Sample data
-
-Populate the database with example opportunities:
-
-```bash
-python populate_sample_data.py
-```
-
-Running the script is safe to repeat; each opportunity is upserted so duplicates
-are not created. Alternatively, the script runs automatically when the server
-starts if the ``ENVIRONMENT`` environment variable is set to ``development``:
-
-```bash
-ENVIRONMENT=development uvicorn main:app --reload
-```
+`populate_sample_data.py` seeds the database with two example opportunities.
+The script is idempotent, so it can be run repeatedly without creating
+duplicates.
 
 ### API endpoints
 
@@ -62,15 +73,8 @@ The backend exposes a simple REST API for working with opportunities:
 
 ## Troubleshooting
 
-### Frontend shows "Unable to fetch opportunities"
+If the frontend displays “Unable to fetch opportunities,” ensure the backend is
+running and `curl http://127.0.0.1:8000/opportunities/` returns a JSON array.
+Check browser developer tools for request details and confirm no other process
+is using port 8000.
 
-This message appears when the request to `/opportunities/` fails or returns
-something other than JSON.
-
-1. Verify the backend is running and `curl http://127.0.0.1:8000/opportunities/`
-   returns a JSON array.
-2. Check the browser developer tools (Network tab) for the request details.
-   A 404 usually means the server was started from the wrong directory or a
-   proxy is misconfigured.
-3. Make sure no leftover `uvicorn` processes are using port 8000; stop them with
-   `lsof -i:8000` followed by `kill <PID>` if needed.

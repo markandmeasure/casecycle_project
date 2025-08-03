@@ -18,4 +18,3 @@ def _get_allowed_origins() -> List[str]:
 
 # Expose the configured origins as a constant for importers.
 ALLOWED_ORIGINS = _get_allowed_origins()
-

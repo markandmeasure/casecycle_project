@@ -13,7 +13,9 @@ function App() {
       setErrorMessage(null);
 
       // Build the URL safely and check the response status
-      const response = await fetch(new URL('/opportunities/', API_BASE_URL));
+      // Ensure the base URL retains any path segment by appending a trailing slash
+      // before constructing the new URL
+      const response = await fetch(new URL('opportunities/', API_BASE_URL + '/'));
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }

@@ -7,6 +7,19 @@ function OpportunityInput() {
   // Use the sanitized base URL (from `App`)
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
+  const numericFields = ['tam_estimate', 'growth_rate'];
+  const requiredFields = [
+    'title',
+    'market_description',
+    ...numericFields,
+    'consumer_insight',
+    'hypothesis',
+  ];
+  const placeholderObj = requiredFields.reduce((acc, field) => {
+    acc[field] = numericFields.includes(field) ? 0 : '';
+    return acc;
+  }, {});
+
   const handleSave = async () => {
     setFeedback(null);
 
@@ -18,18 +31,19 @@ function OpportunityInput() {
       return;
     }
 
-    const requiredFields = [
-      'title',
-      'market_description',
-      'tam_estimate',
-      'growth_rate',
-      'consumer_insight',
-      'hypothesis',
-    ];
     const missing = requiredFields.filter((field) => !(field in parsed));
     if (missing.length > 0) {
       setFeedback(`Missing fields: ${missing.join(', ')}`);
       return;
+    }
+
+    for (const field of numericFields) {
+      const value = Number(parsed[field]);
+      if (Number.isNaN(value)) {
+        setFeedback(`${field} must be a number`);
+        return;
+      }
+      parsed[field] = value;
     }
 
     try {
@@ -55,7 +69,7 @@ function OpportunityInput() {
       <textarea
         value={jsonValue}
         onChange={(e) => setJsonValue(e.target.value)}
-        placeholder='{"title":"","market_description":"","tam_estimate":"","growth_rate":"","consumer_insight":"","hypothesis":""}'
+        placeholder={JSON.stringify(placeholderObj)}
         rows={12}
         cols={80}
       />

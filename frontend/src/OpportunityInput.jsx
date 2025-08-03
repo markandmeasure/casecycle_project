@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-function OpportunityInput() {
+function OpportunityInput({ onSaved }) {
   const [jsonValue, setJsonValue] = useState('');
   const [feedback, setFeedback] = useState(null);
 
@@ -58,6 +58,10 @@ function OpportunityInput() {
         throw new Error('Network response was not ok');
       }
       setFeedback('Opportunity saved');
+      setJsonValue('');
+      if (onSaved) {
+        onSaved();
+      }
     } catch (error) {
       console.error('Error saving opportunity:', error);
       setFeedback('Failed to save opportunity');

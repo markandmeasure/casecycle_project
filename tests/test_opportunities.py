@@ -17,8 +17,20 @@ def setup_db():
     Base.metadata.drop_all(bind=engine)
 
 
-def test_create_opportunity():
+@pytest.fixture
+def auth_header():
     client = TestClient(app)
+    client.post("/users/", json={"name": "alice", "password": "secret"})
+    token_resp = client.post(
+        "/token", data={"username": "alice", "password": "secret"}
+    )
+    token = token_resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_create_opportunity(auth_header):
+    client = TestClient(app)
+    headers = auth_header
     payload = {
         "title": "New Market",
         "market_description": "Description",
@@ -27,7 +39,7 @@ def test_create_opportunity():
         "consumer_insight": "Insight",
         "hypothesis": "Hypothesis",
     }
-    response = client.post("/opportunities/", json=payload)
+    response = client.post("/opportunities/", json=payload, headers=headers)
     assert response.status_code == 200
     data = response.json()
     for key, value in payload.items():
@@ -35,16 +47,31 @@ def test_create_opportunity():
     assert "id" in data
 
     # verify opportunity is persisted
-    list_response = client.get("/opportunities/")
+    list_response = client.get("/opportunities/", headers=headers)
     assert list_response.status_code == 200
     opportunities = list_response.json()
     assert len(opportunities) == 1
     assert opportunities[0]["title"] == payload["title"]
 
 
-@pytest.mark.parametrize("tam_estimate", [-1000.0, 0.0])
-def test_create_opportunity_invalid_tam_estimate(tam_estimate):
+def test_create_opportunity_unauthorized():
     client = TestClient(app)
+    payload = {
+        "title": "No Auth",
+        "market_description": "Description",
+        "tam_estimate": 1000.0,
+        "growth_rate": 5.0,
+        "consumer_insight": "Insight",
+        "hypothesis": "Hypothesis",
+    }
+    response = client.post("/opportunities/", json=payload)
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("tam_estimate", [-1000.0, 0.0])
+def test_create_opportunity_invalid_tam_estimate(tam_estimate, auth_header):
+    client = TestClient(app)
+    headers = auth_header
     payload = {
         "title": "Invalid TAM",
         "market_description": "Description",
@@ -53,12 +80,13 @@ def test_create_opportunity_invalid_tam_estimate(tam_estimate):
         "consumer_insight": "Insight",
         "hypothesis": "Hypothesis",
     }
-    response = client.post("/opportunities/", json=payload)
+    response = client.post("/opportunities/", json=payload, headers=headers)
     assert response.status_code == 422
 
 
-def test_create_opportunity_invalid_growth_rate():
+def test_create_opportunity_invalid_growth_rate(auth_header):
     client = TestClient(app)
+    headers = auth_header
     payload = {
         "title": "Invalid Growth",
         "market_description": "Description",
@@ -67,5 +95,5 @@ def test_create_opportunity_invalid_growth_rate():
         "consumer_insight": "Insight",
         "hypothesis": "Hypothesis",
     }
-    response = client.post("/opportunities/", json=payload)
+    response = client.post("/opportunities/", json=payload, headers=headers)
     assert response.status_code == 422

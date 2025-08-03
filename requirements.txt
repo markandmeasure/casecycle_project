@@ -6,3 +6,6 @@ python-dotenv
 pytest
 httpx
 jinja2
+passlib[bcrypt]
+python-jose
+python-multipart

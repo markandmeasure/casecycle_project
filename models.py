@@ -8,6 +8,8 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    token = Column(String, nullable=True)
 
 
 class Opportunity(Base):

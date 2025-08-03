@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -9,12 +9,35 @@ import os
 import json
 from pathlib import Path
 from jinja2 import Template
+import logging
+import time
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Histogram,
+    generate_latest,
+)
 
 import models
 from database import SessionLocal, engine
 from settings import ALLOWED_ORIGINS
 
 models.Base.metadata.create_all(bind=engine)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("casecycle")
+
+REQUEST_COUNT = Counter(
+    "request_count", "Total HTTP requests", ["method", "endpoint", "http_status"]
+)
+REQUEST_LATENCY = Histogram(
+    "request_latency_seconds",
+    "Latency of HTTP requests in seconds",
+    ["method", "endpoint"],
+)
 
 app = FastAPI()
 
@@ -28,6 +51,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    try:
+        response = await call_next(request)
+    except Exception:
+        process_time = time.time() - start_time
+        logger.exception(
+            f"{request.method} {request.url.path} failed in {process_time:.4f}s"
+        )
+        REQUEST_COUNT.labels(request.method, request.url.path, "500").inc()
+        REQUEST_LATENCY.labels(request.method, request.url.path).observe(process_time)
+        raise
+    process_time = time.time() - start_time
+    log_message = (
+        f"{request.method} {request.url.path} completed in {process_time:.4f}s "
+        f"status={response.status_code}"
+    )
+    if response.status_code >= 500:
+        logger.error(log_message)
+    elif response.status_code >= 400:
+        logger.warning(log_message)
+    else:
+        logger.info(log_message)
+    REQUEST_COUNT.labels(
+        request.method, request.url.path, str(response.status_code)
+    ).inc()
+    REQUEST_LATENCY.labels(request.method, request.url.path).observe(process_time)
+    return response
+
 if os.getenv("ENVIRONMENT") == "development":
     from populate_sample_data import populate
 
@@ -39,6 +93,11 @@ if os.getenv("ENVIRONMENT") == "development":
 def root() -> dict:
     """Basic root endpoint to confirm the API is running."""
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 def get_db():

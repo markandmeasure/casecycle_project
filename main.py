@@ -41,9 +41,17 @@ class UserSchema(BaseModel):
         orm_mode = True
 
 
-class OpportunitySchema(BaseModel):
+class OpportunityCreate(BaseModel):
+    title: str
+    market_description: str
+    tam_estimate: int
+    growth_rate: float
+    consumer_insight: str
+    hypothesis: str
+
+
+class OpportunitySchema(OpportunityCreate):
     id: int
-    name: str
 
     class Config:
         orm_mode = True
@@ -61,6 +69,15 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.get("/users/", response_model=List[UserSchema])
 def read_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
+
+
+@app.post("/opportunities/", response_model=OpportunitySchema)
+def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get_db)):
+    db_opportunity = models.Opportunity(**opportunity.dict())
+    db.add(db_opportunity)
+    db.commit()
+    db.refresh(db_opportunity)
+    return db_opportunity
 
 
 @app.get("/opportunities/", response_model=List[OpportunitySchema])

@@ -50,6 +50,27 @@ starts if the ``ENVIRONMENT`` environment variable is set to ``development``:
 ENVIRONMENT=development uvicorn main:app --reload
 ```
 
+## Deployment
+
+Docker images are provided for both services. Build and start everything with Docker Compose:
+
+```bash
+docker compose build
+docker compose up
+```
+
+The backend will be available at `http://localhost:8000` and the frontend at `http://localhost:3000`.
+
+To build individual images without starting containers:
+
+```bash
+# Backend
+docker build -t casecycle-backend .
+
+# Frontend
+docker build -t casecycle-frontend ./frontend
+```
+
 ## Troubleshooting
 
 ### Frontend shows "Unable to fetch opportunities"

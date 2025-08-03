@@ -35,6 +35,7 @@ if os.getenv("ENVIRONMENT") == "development":
     def _load_sample_data() -> None:
         populate()
 
+
 @app.get("/")
 def root() -> dict:
     """Basic root endpoint to confirm the API is running."""
@@ -74,12 +75,13 @@ class OpportunityCreate(BaseModel):
     growth_rate: Optional[float] = Field(default=None, ge=0)
     consumer_insight: Optional[str] = None
     hypothesis: Optional[str] = None
-
+    
 
 class OpportunitySchema(OpportunityCreate):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
 
 @app.post("/users/", response_model=UserSchema)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):

@@ -5,15 +5,12 @@ function App() {
   const [opportunities, setOpportunities] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // Use the sanitized base URL (from `main`)
-  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
-
   const fetchOpportunities = async () => {
     try {
       setErrorMessage(null);
 
-      // Build the URL safely and check the response status
-      const response = await fetch(new URL('/opportunities/', API_BASE_URL));
+      // Use a relative path so Vite's proxy forwards to the backend during development
+      const response = await fetch('/opportunities/');
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }

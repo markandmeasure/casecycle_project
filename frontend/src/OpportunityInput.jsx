@@ -69,13 +69,12 @@ function OpportunityInput({ onSaved }) {
   };
 
   return (
-    <div>
+    <div className="opportunity-input">
       <textarea
         value={jsonValue}
         onChange={(e) => setJsonValue(e.target.value)}
         placeholder={JSON.stringify(placeholderObj)}
         rows={12}
-        cols={80}
       />
       <div>
         <button onClick={handleSave}>Save</button>

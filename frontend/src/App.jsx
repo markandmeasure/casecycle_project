@@ -32,37 +32,41 @@ function App() {
   }, [fetchOpportunities]);
 
   return (
-    <div className="App">
-      <OpportunityInput onSaved={fetchOpportunities} />
-      {errorMessage && <div role="alert">{errorMessage}</div>}
-      <ul>
-        {opportunities.map((opp, idx) => (
-          <li key={opp.id || idx}>
-            <h3>{opp.title}</h3>
-            <p><strong>Market Description:</strong> {opp.market_description}</p>
-            <p><strong>TAM Estimate:</strong> {opp.tam_estimate}</p>
-            <p><strong>Growth Rate:</strong> {opp.growth_rate}</p>
-            <p><strong>Consumer Insight:</strong> {opp.consumer_insight}</p>
-            <p><strong>Hypothesis:</strong> {opp.hypothesis}</p>
-          </li>
-        ))}
-      </ul>
-      <div>
-        <button
-          onClick={() => setPage((p) => Math.max(p - 1, 0))}
-          disabled={page === 0}
-        >
-          Prev
-        </button>
-        <span>Page {page + 1}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          disabled={opportunities.length < 10}
-        >
-          Next
-        </button>
-      </div>
-    </div>
+    <>
+      <header className="site-header">CaseCycle</header>
+      <main className="content">
+        <OpportunityInput onSaved={fetchOpportunities} />
+        {errorMessage && <div role="alert">{errorMessage}</div>}
+        <ul className="opportunity-list">
+          {opportunities.map((opp, idx) => (
+            <li key={opp.id || idx}>
+              <h3>{opp.title}</h3>
+              <p><strong>Market Description:</strong> {opp.market_description}</p>
+              <p><strong>TAM Estimate:</strong> {opp.tam_estimate}</p>
+              <p><strong>Growth Rate:</strong> {opp.growth_rate}</p>
+              <p><strong>Consumer Insight:</strong> {opp.consumer_insight}</p>
+              <p><strong>Hypothesis:</strong> {opp.hypothesis}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="pagination">
+          <button
+            onClick={() => setPage((p) => Math.max(p - 1, 0))}
+            disabled={page === 0}
+          >
+            Prev
+          </button>
+          <span>Page {page + 1}</span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={opportunities.length < 10}
+          >
+            Next
+          </button>
+        </div>
+      </main>
+      <footer className="site-footer">Mark&Measure</footer>
+    </>
   );
 }
 

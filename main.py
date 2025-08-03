@@ -29,6 +29,10 @@ def get_db():
         db.close()
 
 
+class UserCreate(BaseModel):
+    name: str
+
+
 class UserSchema(BaseModel):
     id: int
     name: str
@@ -46,12 +50,12 @@ class OpportunitySchema(BaseModel):
 
 
 @app.post("/users/", response_model=UserSchema)
-def create_user(name: str, db: Session = Depends(get_db)):
-    user = models.User(name=name)
-    db.add(user)
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = models.User(name=user.name)
+    db.add(db_user)
     db.commit()
-    db.refresh(user)
-    return user
+    db.refresh(db_user)
+    return db_user
 
 
 @app.get("/users/", response_model=List[UserSchema])

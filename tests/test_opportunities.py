@@ -17,10 +17,20 @@ def setup_db():
     Base.metadata.drop_all(bind=engine)
 
 
+def create_user_and_token(client, username="user"):
+    user_resp = client.post("/users/", json={"name": username})
+    user_id = user_resp.json()["id"]
+    token_resp = client.post(
+        "/token", data={"username": username, "password": "password"}
+    )
+    token = token_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    return headers, user_id
+
+
 def test_create_opportunity():
     client = TestClient(app)
-    user_resp = client.post("/users/", json={"name": "Alice"})
-    user_id = user_resp.json()["id"]
+    headers, user_id = create_user_and_token(client, "Alice")
     payload = {
         "title": "New Market",
         "market_description": "Description",
@@ -30,7 +40,7 @@ def test_create_opportunity():
         "hypothesis": "Hypothesis",
         "user_id": user_id,
     }
-    response = client.post("/opportunities/", json=payload)
+    response = client.post("/opportunities/", json=payload, headers=headers)
     assert response.status_code == 200
     data = response.json()
     for key, value in payload.items():
@@ -38,7 +48,7 @@ def test_create_opportunity():
     assert "id" in data
 
     # verify opportunity is persisted
-    list_response = client.get("/opportunities/")
+    list_response = client.get("/opportunities/", headers=headers)
     assert list_response.status_code == 200
     opportunities = list_response.json()
     assert len(opportunities) == 1
@@ -48,6 +58,7 @@ def test_create_opportunity():
 
 def test_update_opportunity():
     client = TestClient(app)
+    headers, user_id = create_user_and_token(client, "Bob")
     payload = {
         "title": "Original Title",
         "market_description": "Description",
@@ -55,12 +66,17 @@ def test_update_opportunity():
         "growth_rate": 5.0,
         "consumer_insight": "Insight",
         "hypothesis": "Hypothesis",
+        "user_id": user_id,
     }
-    create_response = client.post("/opportunities/", json=payload)
+    create_response = client.post(
+        "/opportunities/", json=payload, headers=headers
+    )
     opportunity_id = create_response.json()["id"]
 
     update_payload = {"title": "Updated Title", "tam_estimate": 2000.0}
-    response = client.patch(f"/opportunities/{opportunity_id}", json=update_payload)
+    response = client.patch(
+        f"/opportunities/{opportunity_id}", json=update_payload
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["title"] == "Updated Title"
@@ -74,8 +90,11 @@ def test_update_opportunity():
 
 def test_delete_opportunity():
     client = TestClient(app)
-    payload = {"title": "To Delete"}
-    create_response = client.post("/opportunities/", json=payload)
+    headers, user_id = create_user_and_token(client, "Carol")
+    payload = {"title": "To Delete", "user_id": user_id}
+    create_response = client.post(
+        "/opportunities/", json=payload, headers=headers
+    )
     opportunity_id = create_response.json()["id"]
 
     response = client.delete(f"/opportunities/{opportunity_id}")
@@ -84,7 +103,7 @@ def test_delete_opportunity():
     get_response = client.get(f"/opportunities/{opportunity_id}")
     assert get_response.status_code == 404
 
-    list_response = client.get("/opportunities/")
+    list_response = client.get("/opportunities/", headers=headers)
     assert list_response.status_code == 200
     assert list_response.json() == []
 
@@ -92,8 +111,7 @@ def test_delete_opportunity():
 @pytest.mark.parametrize("tam_estimate", [-1000.0, 0.0])
 def test_create_opportunity_invalid_tam_estimate(tam_estimate):
     client = TestClient(app)
-    user_resp = client.post("/users/", json={"name": "Bob"})
-    user_id = user_resp.json()["id"]
+    headers, user_id = create_user_and_token(client, "Bob2")
     payload = {
         "title": "Invalid TAM",
         "market_description": "Description",
@@ -103,14 +121,13 @@ def test_create_opportunity_invalid_tam_estimate(tam_estimate):
         "hypothesis": "Hypothesis",
         "user_id": user_id,
     }
-    response = client.post("/opportunities/", json=payload)
+    response = client.post("/opportunities/", json=payload, headers=headers)
     assert response.status_code == 422
 
 
 def test_create_opportunity_invalid_growth_rate():
     client = TestClient(app)
-    user_resp = client.post("/users/", json={"name": "Charlie"})
-    user_id = user_resp.json()["id"]
+    headers, user_id = create_user_and_token(client, "Charlie")
     payload = {
         "title": "Invalid Growth",
         "market_description": "Description",
@@ -120,5 +137,5 @@ def test_create_opportunity_invalid_growth_rate():
         "hypothesis": "Hypothesis",
         "user_id": user_id,
     }
-    response = client.post("/opportunities/", json=payload)
+    response = client.post("/opportunities/", json=payload, headers=headers)
     assert response.status_code == 422

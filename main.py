@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response, Request
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -9,6 +9,15 @@ import os
 import json
 from pathlib import Path
 from jinja2 import Template
+import time
+
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    CONTENT_TYPE_LATEST,
+    generate_latest,
+)
 
 import models
 from database import SessionLocal, engine
@@ -17,6 +26,45 @@ from settings import ALLOWED_ORIGINS
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
+# Prometheus metrics registry and metrics definitions
+PROMETHEUS_REGISTRY = CollectorRegistry()
+REQUEST_COUNT = Counter(
+    "requests_total",
+    "Total HTTP requests",
+    ["method", "path", "status_code"],
+    registry=PROMETHEUS_REGISTRY,
+)
+REQUEST_LATENCY = Histogram(
+    "request_latency_seconds",
+    "Request latency in seconds",
+    ["method", "path"],
+    registry=PROMETHEUS_REGISTRY,
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+
+    route = request.scope.get("route")
+    path_template = getattr(route, "path", request.url.path)
+
+    REQUEST_COUNT.labels(request.method, path_template, str(response.status_code)).inc()
+    REQUEST_LATENCY.labels(request.method, path_template).observe(process_time)
+
+    return response
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(
+        content=generate_latest(PROMETHEUS_REGISTRY),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 TEMPLATE_PATH = Path(__file__).with_name("prompt_templates.json")
 

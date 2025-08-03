@@ -3,11 +3,11 @@ import './App.css'
 
 function App() {
   const [opportunities, setOpportunities] = useState(null)
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
 
   const fetchOpportunities = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/opportunities/`)
+      const response = await fetch(new URL('/opportunities/', API_BASE_URL))
       const data = await response.json()
       setOpportunities(data)
     } catch (error) {

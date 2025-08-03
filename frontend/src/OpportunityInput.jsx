@@ -7,7 +7,7 @@ function OpportunityInput({ onSaved }) {
   // Use the sanitized base URL (from `App`)
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
-  const numericFields = ['tam_estimate', 'growth_rate'];
+  const numericFields = ['tam_estimate', 'growth_rate', 'user_id'];
   const requiredFields = [
     'title',
     'market_description',

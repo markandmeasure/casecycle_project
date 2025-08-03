@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import OpportunityInput from './OpportunityInput';
+import UserForm from './UserForm';
+import UserList from './UserList';
 
 function App() {
   const [opportunities, setOpportunities] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
   const [page, setPage] = useState(0);
+  const [userRefresh, setUserRefresh] = useState(0);
 
   const fetchOpportunities = useCallback(async () => {
     try {
@@ -35,6 +38,8 @@ function App() {
     <>
       <header className="site-header">CaseCycle</header>
       <main className="content">
+        <UserForm onUserCreated={() => setUserRefresh((u) => u + 1)} />
+        <UserList refreshToken={userRefresh} />
         <OpportunityInput onSaved={fetchOpportunities} />
         {errorMessage && <div role="alert">{errorMessage}</div>}
         <ul className="opportunity-list">

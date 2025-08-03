@@ -1,5 +1,6 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,7 +75,11 @@ def read_users(db: Session = Depends(get_db)):
 def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get_db)):
     db_opportunity = models.Opportunity(**opportunity.dict())
     db.add(db_opportunity)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Title already exists")
     db.refresh(db_opportunity)
     return db_opportunity
 

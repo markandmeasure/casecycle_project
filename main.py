@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -35,6 +35,11 @@ if os.getenv("ENVIRONMENT") == "development":
     def _load_sample_data() -> None:
         populate()
 
+@app.get("/")
+def root() -> dict:
+    """Basic root endpoint to confirm the API is running."""
+    return {"status": "ok"}
+
 
 def get_db():
     db = SessionLocal()
@@ -59,8 +64,7 @@ class UserSchema(BaseModel):
     id: int
     name: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OpportunityCreate(BaseModel):
@@ -75,8 +79,7 @@ class OpportunityCreate(BaseModel):
 class OpportunitySchema(OpportunityCreate):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 @app.post("/users/", response_model=UserSchema)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -94,7 +97,7 @@ def read_users(db: Session = Depends(get_db)):
 
 @app.post("/opportunities/", response_model=OpportunitySchema)
 def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get_db)):
-    db_opportunity = models.Opportunity(**opportunity.dict())
+    db_opportunity = models.Opportunity(**opportunity.model_dump())
     db.add(db_opportunity)
     db.commit()
     db.refresh(db_opportunity)

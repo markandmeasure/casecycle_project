@@ -42,6 +42,8 @@ class UserSchema(BaseModel):
 
 
 class OpportunityCreate(BaseModel):
+    """Schema for creating a full Opportunity record."""
+
     title: str
     market_description: str
     tam_estimate: int

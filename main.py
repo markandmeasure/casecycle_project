@@ -43,7 +43,12 @@ class UserSchema(BaseModel):
 
 class OpportunitySchema(BaseModel):
     id: int
-    name: str
+    title: str
+    market_description: str
+    tam_estimate: int
+    growth_rate: float
+    consumer_insight: str
+    hypothesis: str
 
     class Config:
         orm_mode = True

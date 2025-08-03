@@ -62,3 +62,8 @@ def read_users(db: Session = Depends(get_db)):
 @app.get("/opportunities/", response_model=List[OpportunitySchema])
 def read_opportunities(db: Session = Depends(get_db)):
     return db.query(models.Opportunity).all()
+
+
+@app.get("/healthcheck")
+def healthcheck():
+    return {"status": "ok"}

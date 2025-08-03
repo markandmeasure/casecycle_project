@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,6 +11,8 @@ import json
 import uuid
 from pathlib import Path
 from jinja2 import Template
+import time
+import logging
 
 import models
 from database import SessionLocal, engine
@@ -29,6 +31,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+logger = logging.getLogger("uvicorn")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log incoming requests and their processing time."""
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    end_time = time.perf_counter()
+    process_time = end_time - start_time
+    logger.info(
+        "%s %s completed in %.4f seconds",
+        request.method,
+        request.url.path,
+        process_time,
+    )
+    return response
 
 if os.getenv("ENVIRONMENT") == "development":
     from populate_sample_data import populate

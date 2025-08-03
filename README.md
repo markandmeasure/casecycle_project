@@ -50,6 +50,16 @@ starts if the ``ENVIRONMENT`` environment variable is set to ``development``:
 ENVIRONMENT=development uvicorn main:app --reload
 ```
 
+### API endpoints
+
+The backend exposes a simple REST API for working with opportunities:
+
+- `GET /opportunities/` – list opportunities.
+- `POST /opportunities/` – create a new opportunity.
+- `GET /opportunities/{id}` – retrieve a single opportunity.
+- `PUT /opportunities/{id}` / `PATCH /opportunities/{id}` – update an existing opportunity.
+- `DELETE /opportunities/{id}` – remove an opportunity.
+
 ## Troubleshooting
 
 ### Frontend shows "Unable to fetch opportunities"

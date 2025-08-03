@@ -6,3 +6,6 @@ python-dotenv
 pytest
 httpx
 jinja2
+prometheus-client
+flake8
+python-multipart

@@ -17,10 +17,20 @@ def setup_db():
     Base.metadata.drop_all(bind=engine)
 
 
+def create_user_and_token(client, username="user"):
+    user_resp = client.post("/users/", json={"name": username})
+    user_id = user_resp.json()["id"]
+    token_resp = client.post(
+        "/token", data={"username": username, "password": "password"}
+    )
+    token = token_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    return headers, user_id
+
+
 def test_generate_prompt():
     client = TestClient(app)
-    user_resp = client.post("/users/", json={"name": "Dana"})
-    user_id = user_resp.json()["id"]
+    headers, user_id = create_user_and_token(client, "Dana")
     payload = {
         "title": "AI Widget",
         "market_description": "Widgets for AI",
@@ -30,7 +40,7 @@ def test_generate_prompt():
         "hypothesis": "AI widgets save time",
         "user_id": user_id,
     }
-    create_resp = client.post("/opportunities/", json=payload)
+    create_resp = client.post("/opportunities/", json=payload, headers=headers)
     assert create_resp.status_code == 200
     opp_id = create_resp.json()["id"]
 

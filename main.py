@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, Response, Request
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -7,10 +8,18 @@ from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
+import uuid
 from pathlib import Path
 from jinja2 import Template
 import time
 import logging
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    CONTENT_TYPE_LATEST,
+    generate_latest,
+)
 
 import models
 from database import SessionLocal, engine
@@ -19,6 +28,52 @@ from settings import ALLOWED_ORIGINS
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
+# Prometheus metrics registry and metrics definitions
+PROMETHEUS_REGISTRY = CollectorRegistry()
+REQUEST_COUNT = Counter(
+    "requests_total",
+    "Total HTTP requests",
+    ["method", "path", "status_code"],
+    registry=PROMETHEUS_REGISTRY,
+)
+REQUEST_LATENCY = Histogram(
+    "request_latency_seconds",
+    "Request latency in seconds",
+    ["method", "path"],
+    registry=PROMETHEUS_REGISTRY,
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log request metrics and processing time."""
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+
+    route = request.scope.get("route")
+    path_template = getattr(route, "path", request.url.path)
+
+    REQUEST_COUNT.labels(request.method, path_template, str(response.status_code)).inc()
+    REQUEST_LATENCY.labels(request.method, path_template).observe(process_time)
+
+    logger.info(
+        "%s %s completed in %.4f seconds",
+        request.method,
+        request.url.path,
+        process_time,
+    )
+    return response
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(
+        content=generate_latest(PROMETHEUS_REGISTRY),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 TEMPLATE_PATH = Path(__file__).with_name("prompt_templates.json")
 
@@ -32,23 +87,6 @@ app.add_middleware(
 
 
 logger = logging.getLogger("uvicorn")
-
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """Log incoming requests and their processing time."""
-    start_time = time.perf_counter()
-    response = await call_next(request)
-    end_time = time.perf_counter()
-    process_time = end_time - start_time
-    logger.info(
-        "%s %s completed in %.4f seconds",
-        request.method,
-        request.url.path,
-        process_time,
-    )
-    return response
-
 if os.getenv("ENVIRONMENT") == "development":
     from populate_sample_data import populate
 
@@ -98,6 +136,7 @@ class OpportunityCreate(BaseModel):
     hypothesis: Optional[str] = None
     user_id: int
 
+    
 
 class OpportunitySchema(OpportunityCreate):
     id: int
@@ -105,13 +144,32 @@ class OpportunitySchema(OpportunityCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
-class OpportunityUpdate(BaseModel):
-    title: Optional[str] = None
-    market_description: Optional[str] = None
-    tam_estimate: Optional[float] = Field(default=None, gt=0)
-    growth_rate: Optional[float] = Field(default=None, ge=0)
-    consumer_insight: Optional[str] = None
-    hypothesis: Optional[str] = None
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+def authenticate_user(db: Session, username: str, password: str):
+    user = db.query(models.User).filter(models.User.name == username).first()
+    if not user:
+        return None
+    return user
+
+
+def create_access_token(data: dict) -> str:
+    return uuid.uuid4().hex
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.token == token).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    return user
 
 
 @app.post("/users/", response_model=UserSchema)
@@ -128,8 +186,35 @@ def read_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
 
 
+@app.post("/token", response_model=Token)
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    user = authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    access_token = create_access_token({"sub": user.name})
+    user.token = access_token
+    db.commit()
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+class OpportunityUpdate(BaseModel):
+    title: Optional[str] = None
+    market_description: Optional[str] = None
+    tam_estimate: Optional[float] = Field(default=None, gt=0)
+    growth_rate: Optional[float] = Field(default=None, ge=0)
+    consumer_insight: Optional[str] = None
+    hypothesis: Optional[str] = None
+
+
 @app.post("/opportunities/", response_model=OpportunitySchema)
-def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get_db)):
+def create_opportunity(
+    opportunity: OpportunityCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     user = db.query(models.User).filter(models.User.id == opportunity.user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -141,7 +226,12 @@ def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get
 
 
 @app.get("/opportunities/", response_model=List[OpportunitySchema])
-def read_opportunities(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_opportunities(
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     return db.query(models.Opportunity).offset(skip).limit(limit).all()
 
 

@@ -75,6 +75,7 @@ def metrics():
         media_type=CONTENT_TYPE_LATEST,
     )
 
+
 TEMPLATE_PATH = Path(__file__).with_name("prompt_templates.json")
 
 app.add_middleware(
@@ -136,7 +137,6 @@ class OpportunityCreate(BaseModel):
     hypothesis: Optional[str] = None
     user_id: int
 
-    
 
 class OpportunitySchema(OpportunityCreate):
     id: int

@@ -6,24 +6,24 @@ function UserList({ refreshToken }) {
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
-  const fetchUsers = async () => {
-    try {
-      setError(null);
-      const resp = await fetch(new URL('/users/', API_BASE_URL));
-      if (!resp.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      const data = await resp.json();
-      setUsers(data);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      setError('Failed to load users');
-    }
-  };
-
   useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setError(null);
+        const resp = await fetch(new URL('/users/', API_BASE_URL));
+        if (!resp.ok) {
+          throw new Error('Failed to fetch users');
+        }
+        const data = await resp.json();
+        setUsers(data);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError('Failed to load users');
+      }
+    };
+
     fetchUsers();
-  }, [refreshToken]);
+  }, [refreshToken, API_BASE_URL]);
 
   return (
     <div className="user-list">

@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import OpportunityInput from './OpportunityInput';
 
 function App() {
   const [opportunities, setOpportunities] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [page, setPage] = useState(0);
 
-  const fetchOpportunities = async () => {
+  const fetchOpportunities = useCallback(async () => {
     try {
       setErrorMessage(null);
 
       // Use a relative URL; Vite's development proxy forwards this to the backend.
-      const response = await fetch('/opportunities/');
+      const response = await fetch(
+        `/opportunities/?skip=${page * 10}&limit=10`
+      );
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -22,11 +25,11 @@ function App() {
       console.error('Error fetching opportunities:', error);
       setErrorMessage('Unable to fetch opportunities. Please try again later.');
     }
-  };
+  }, [page]);
 
   useEffect(() => {
     fetchOpportunities();
-  }, []);
+  }, [fetchOpportunities]);
 
   return (
     <div className="App">
@@ -44,6 +47,21 @@ function App() {
           </li>
         ))}
       </ul>
+      <div>
+        <button
+          onClick={() => setPage((p) => Math.max(p - 1, 0))}
+          disabled={page === 0}
+        >
+          Prev
+        </button>
+        <span>Page {page + 1}</span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={opportunities.length < 10}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

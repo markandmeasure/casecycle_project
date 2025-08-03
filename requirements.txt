@@ -6,3 +6,4 @@ python-dotenv
 pytest
 httpx
 jinja2
+prometheus_client

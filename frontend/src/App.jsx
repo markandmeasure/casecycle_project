@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import OpportunityInput from './OpportunityInput';
 
 function App() {
-  const [opportunities, setOpportunities] = useState(null);
+  const [opportunities, setOpportunities] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
 
   const fetchOpportunities = async () => {
@@ -24,12 +24,26 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    fetchOpportunities();
+  }, []);
+
   return (
     <div className="App">
-      <OpportunityInput />
-      <button onClick={fetchOpportunities}>Fetch Opportunities</button>
+      <OpportunityInput onSaved={fetchOpportunities} />
       {errorMessage && <div role="alert">{errorMessage}</div>}
-      {opportunities && <pre>{JSON.stringify(opportunities, null, 2)}</pre>}
+      <ul>
+        {opportunities.map((opp, idx) => (
+          <li key={opp.id || idx}>
+            <h3>{opp.title}</h3>
+            <p><strong>Market Description:</strong> {opp.market_description}</p>
+            <p><strong>TAM Estimate:</strong> {opp.tam_estimate}</p>
+            <p><strong>Growth Rate:</strong> {opp.growth_rate}</p>
+            <p><strong>Consumer Insight:</strong> {opp.consumer_insight}</p>
+            <p><strong>Hypothesis:</strong> {opp.hypothesis}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

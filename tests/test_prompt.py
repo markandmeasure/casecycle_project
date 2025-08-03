@@ -19,6 +19,8 @@ def setup_db():
 
 def test_generate_prompt():
     client = TestClient(app)
+    user_resp = client.post("/users/", json={"name": "Dana"})
+    user_id = user_resp.json()["id"]
     payload = {
         "title": "AI Widget",
         "market_description": "Widgets for AI",
@@ -26,6 +28,7 @@ def test_generate_prompt():
         "growth_rate": 12.5,
         "consumer_insight": "Automation is valued",
         "hypothesis": "AI widgets save time",
+        "user_id": user_id,
     }
     create_resp = client.post("/opportunities/", json=payload)
     assert create_resp.status_code == 200

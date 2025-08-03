@@ -74,6 +74,7 @@ class OpportunityCreate(BaseModel):
     growth_rate: Optional[float] = Field(default=None, ge=0)
     consumer_insight: Optional[str] = None
     hypothesis: Optional[str] = None
+    user_id: int
 
 
 class OpportunitySchema(OpportunityCreate):
@@ -97,6 +98,9 @@ def read_users(db: Session = Depends(get_db)):
 
 @app.post("/opportunities/", response_model=OpportunitySchema)
 def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == opportunity.user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     db_opportunity = models.Opportunity(**opportunity.model_dump())
     db.add(db_opportunity)
     db.commit()

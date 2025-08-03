@@ -80,8 +80,15 @@ def create_opportunity(opportunity: OpportunityCreate, db: Session = Depends(get
 
 
 @app.get("/opportunities/", response_model=List[OpportunitySchema])
-def read_opportunities(db: Session = Depends(get_db)):
-    return db.query(models.Opportunity).all()
+def read_opportunities(
+    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+):
+    return (
+        db.query(models.Opportunity)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @app.get("/healthcheck")

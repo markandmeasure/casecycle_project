@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 import models
 from database import SessionLocal, engine
@@ -19,6 +20,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if os.getenv("ENVIRONMENT") == "development":
+    from populate_sample_data import populate
+
+    @app.on_event("startup")
+    def _load_sample_data() -> None:
+        populate()
 
 
 def get_db():

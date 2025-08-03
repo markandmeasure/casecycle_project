@@ -48,6 +48,8 @@ def test_create_opportunity():
 
 def test_update_opportunity():
     client = TestClient(app)
+    user_resp = client.post("/users/", json={"name": "Dana"})
+    user_id = user_resp.json()["id"]
     payload = {
         "title": "Original Title",
         "market_description": "Description",
@@ -55,6 +57,7 @@ def test_update_opportunity():
         "growth_rate": 5.0,
         "consumer_insight": "Insight",
         "hypothesis": "Hypothesis",
+        "user_id": user_id,
     }
     create_response = client.post("/opportunities/", json=payload)
     opportunity_id = create_response.json()["id"]
@@ -74,7 +77,9 @@ def test_update_opportunity():
 
 def test_delete_opportunity():
     client = TestClient(app)
-    payload = {"title": "To Delete"}
+    user_resp = client.post("/users/", json={"name": "Eve"})
+    user_id = user_resp.json()["id"]
+    payload = {"title": "To Delete", "user_id": user_id}
     create_response = client.post("/opportunities/", json=payload)
     opportunity_id = create_response.json()["id"]
 

@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useAuth } from './AuthContext.jsx';
 
 function OpportunityInput({ onSaved }) {
   const [jsonValue, setJsonValue] = useState('');
   const [feedback, setFeedback] = useState(null);
+  const { token } = useAuth();
 
   // Use the sanitized base URL (from `App`)
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
@@ -51,11 +53,12 @@ function OpportunityInput({ onSaved }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(parsed),
       });
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(await response.text());
       }
       setFeedback('Opportunity saved');
       setJsonValue('');
@@ -69,15 +72,21 @@ function OpportunityInput({ onSaved }) {
   };
 
   return (
-    <div className="opportunity-input">
+    <div className="space-y-2">
       <textarea
         value={jsonValue}
         onChange={(e) => setJsonValue(e.target.value)}
         placeholder={JSON.stringify(placeholderObj)}
         rows={12}
+        className="w-full p-4 border rounded"
       />
       <div>
-        <button onClick={handleSave}>Save</button>
+        <button
+          onClick={handleSave}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Save
+        </button>
       </div>
       {feedback && <div role="alert">{feedback}</div>}
     </div>

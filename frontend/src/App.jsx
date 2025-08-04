@@ -10,13 +10,14 @@ function App() {
   const [page, setPage] = useState(0);
   const [userRefresh, setUserRefresh] = useState(0);
 
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+
   const fetchOpportunities = useCallback(async () => {
     try {
       setErrorMessage(null);
 
-      // Use a relative URL; Vite's development proxy forwards this to the backend.
       const response = await fetch(
-        `/opportunities/?skip=${page * 10}&limit=10`
+        new URL(`/opportunities/?skip=${page * 10}&limit=10`, API_BASE_URL)
       );
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -28,7 +29,7 @@ function App() {
       console.error('Error fetching opportunities:', error);
       setErrorMessage('Unable to fetch opportunities. Please try again later.');
     }
-  }, [page]);
+  }, [page, API_BASE_URL]);
 
   useEffect(() => {
     fetchOpportunities();
